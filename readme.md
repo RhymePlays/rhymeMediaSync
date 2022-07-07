@@ -1,0 +1,1 @@
+download and put mpv.exe and node.exe in the same folder

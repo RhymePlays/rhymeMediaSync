@@ -1,0 +1,9 @@
+{
+  "name": "rhymesync-server",
+  "main": "index.js",
+  "author": "Isfar Tausif",
+  "license": "ISC",
+  "dependencies": {
+    "socket.io": "^4.5.1"
+  }
+}
