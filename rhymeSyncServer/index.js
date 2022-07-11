@@ -24,5 +24,8 @@ io.on("connection", (socketObj)=>{
     activeSockets.push(socketObj.id)
     socketObj.on("disconnect", ()=>{activeSockets.splice(activeSockets.indexOf(socketObj.id), 1)})
     
-    socketObj.on("sendDataToServer", (arg)=>{sendToAllClientsExcept("sendDataToClient", arg, socketObj.id)})
+    socketObj.on("getActiveSocketList", ()=>{socketObj.emit("debuggerReceiver", {type: "activeSocketData", activeSockets: activeSockets, selfSocket: socketObj.id})})
+    socketObj.on("sendDataToDebuggers", (arg)=>{let returnValue = arg; returnValue["fromID"]=socketObj.id; sendToAllClientsExcept("debuggerReceiver", returnValue, socketObj.id)})
+    socketObj.on("sendDataToSpecificID", (arg)=>{try{io.to(arg.recipientsID).emit("clientReceiver", arg)}catch(e){}})
+    socketObj.on("sendDataToOthers", (arg)=>{sendToAllClientsExcept("clientReceiver", arg, socketObj.id)})
 })

@@ -32,20 +32,20 @@ prompt.get(["ip", "port", "videoFilePath"], (err, result)=>{
     // Functions
     function unobserveProperties(){for (index in variables.unobserveIDs){mpvPlayer.unobserveProperty(variables.unobserveIDs[index])}}
     function observeProperties(){for (index in variables.observeProperties){mpvPlayer.observeProperty(variables.observeProperties[index].property, variables.observeProperties[index].id)}}
-    function setRandomCommandID(){let randomCommandID = Math.random().toString();variables.lastCommandID = randomCommandID;return randomCommandID}
+    function getRandomCommandID(){return Math.random().toString()}
 
 
     // Outbound Events
     mpvPlayer.on("statuschange", (mpvArg)=>{
         if (mpvArg.pause != variables.currentlyPaused){
-            socket.emit("sendDataToServer", {"type": "pauseState", commandID: setRandomCommandID(), isPaused: mpvArg.pause})
+            socket.emit("sendDataToOthers", {type: "pauseState", commandID: getRandomCommandID(), isPaused: mpvArg.pause})
             variables.currentlyPaused = mpvArg.pause
         }
     })
 
     mpvPlayer.on("seek", (mpvArg)=>{
         if (Math.abs(mpvArg.start - mpvArg.end) > variables.minSeekDiff){
-            socket.emit("sendDataToServer", {"type": "timepos", commandID: setRandomCommandID(), timepos: mpvArg.end})
+            socket.emit("sendDataToOthers", {type: "timepos", commandID: getRandomCommandID(), timepos: mpvArg.end})
         }
     })
 
@@ -53,8 +53,10 @@ prompt.get(["ip", "port", "videoFilePath"], (err, result)=>{
     // Inbound Events
     socket.on("connectionEstablished", (arg)=>{console.log("Connected!!")})
 
-    socket.on("sendDataToClient", (arg)=>{
+    socket.on("clientReceiver", (arg)=>{
         if (arg.commandID != variables.lastCommandID){
+            variables.lastCommandID = arg.commandID
+            
             console.log(arg)
             if (arg.type == "pauseState"){
                 if (arg.isPaused == true && variables.currentlyPaused == false){mpvPlayer.pause()}
@@ -66,8 +68,23 @@ prompt.get(["ip", "port", "videoFilePath"], (err, result)=>{
                     mpvPlayer.goToPosition(arg.timepos)
                 }
             }
+            
+            if (arg.type == "showText"){
+                mpvPlayer.displayASS("{\\fs10}"+arg.text.toString(), arg.duration||7500, arg.position||7)
+            }
+
+            if (arg.type == "setProperty"){
+                try{mpvPlayer.setProperty(arg.propertyName, arg.propertyValue)}catch(e){}
+            }
+            
+            if (arg.type == "getProperty"){
+                try{
+                    mpvPlayer.getProperty(arg.propertyName).then((returnValue)=>{
+                        socket.emit("sendDataToDebuggers", {type:"propertyData", data: returnValue})
+                    })
+                }catch(e){}
+            }
         }
     })
-
 
 })
